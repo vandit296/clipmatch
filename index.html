@@ -230,11 +230,12 @@ async function ensureFFmpeg(){
     const {FFmpeg}=FFmpegWASM, {toBlobURL}=FFmpegUtil;
     ffmpeg=new FFmpeg();
     ffmpeg.on('log',({message})=>log(message));
-    await ffmpeg.load({
-      classWorkerURL:await toBlobURL(src.worker,'text/javascript'),
-      coreURL:await toBlobURL(src.core,'text/javascript'),
-      wasmURL:await toBlobURL(src.wasm,'application/wasm')
-    });
+    const local=src.name==='this site';
+    const abs=p=>new URL(p,location.href).href;     // same-origin direct URLs (no blob chaining)
+    const cfg=local
+      ? {classWorkerURL:abs(src.worker),coreURL:abs(src.core),wasmURL:abs(src.wasm)}
+      : {classWorkerURL:await toBlobURL(src.worker,'text/javascript'),coreURL:await toBlobURL(src.core,'text/javascript'),wasmURL:await toBlobURL(src.wasm,'application/wasm')};
+    await ffmpeg.load(cfg);
     ffReady=true;setFF('ok','ready');return true;
   }catch(e){setFF('err','failed to load — '+e.message);log('LOAD ERROR: '+e);return false;}
 }
