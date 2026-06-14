@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClipMatch — audio clips → video clips</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #181b24; --panel2: #1f2330;
+    --text: #e8eaf0; --muted: #8a90a3; --accent: #4f7cff; --good: #34c77b; --warn: #f5a623;
+    --border: #2a2f3e;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; padding: 40px 20px; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 26px; letter-spacing: -0.5px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); margin: 6px 0 30px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .drop {
+    background: var(--panel); border: 2px dashed var(--border); border-radius: 14px;
+    padding: 28px 20px; text-align: center; cursor: pointer; transition: all .15s;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--panel2); }
+  .drop .icon { font-size: 30px; }
+  .drop b { display: block; margin-top: 8px; }
+  .drop small { color: var(--muted); }
+  .drop .picked { color: var(--good); font-weight: 600; margin-top: 6px; display: block; }
+  button.go {
+    margin-top: 20px; width: 100%; padding: 14px; font-size: 16px; font-weight: 700;
+    background: var(--accent); color: #fff; border: 0; border-radius: 12px; cursor: pointer;
+  }
+  button.go:disabled { background: var(--panel2); color: var(--muted); cursor: not-allowed; }
+  .privacy { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+  .progress { margin-top: 24px; display: none; }
+  .bar { height: 8px; background: var(--panel2); border-radius: 4px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0%; background: var(--accent); transition: width .2s; }
+  .ptext { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 24px; display: none; }
+  th { text-align: left; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  .conf { display: inline-block; min-width: 52px; text-align: center; padding: 2px 8px; border-radius: 20px; font-size: 12.5px; font-weight: 700; }
+  .conf.hi { background: rgba(52,199,123,.15); color: var(--good); }
+  .conf.lo { background: rgba(245,166,35,.15); color: var(--warn); }
+  .actions { display: none; gap: 12px; margin-top: 20px; }
+  .actions button { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-weight: 600; cursor: pointer; }
+  .actions button:hover { border-color: var(--accent); }
+  pre { display: none; margin-top: 16px; background: #0a0c10; border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-size: 12.5px; overflow-x: auto; color: #b9c1d9; }
+  .note { margin-top: 28px; color: var(--muted); font-size: 13px; background: var(--panel); border-radius: 10px; padding: 14px 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Clip<span>Match</span></h1>
+  <p class="sub">Made clips in the <b>audio</b> file? Get the same clips from the <b>video</b> file — automatically.</p>
+
+  <div class="grid">
+    <div class="drop" id="dropVideo">
+      <div class="icon">🎬</div>
+      <b>Episode video</b>
+      <small>the full video file of the show (.mp4, .mov…)</small>
+      <span class="picked" id="pickedVideo"></span>
+      <input type="file" id="fileVideo" accept="video/*,audio/*" hidden>
+    </div>
+    <div class="drop" id="dropClips">
+      <div class="icon">🎧</div>
+      <b>Audio clips</b>
+      <small>the clips exported from Descript (.mp3, .wav…)</small>
+      <span class="picked" id="pickedClips"></span>
+      <input type="file" id="fileClips" accept="audio/*,.mp3,.wav,.m4a" multiple hidden>
+    </div>
+  </div>
+
+  <button class="go" id="go" disabled>Find clips in video</button>
+  <p class="privacy">Runs 100% in your browser — nothing is uploaded anywhere.</p>
+
+  <div class="progress" id="progress">
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="ptext" id="ptext"></div>
+  </div>
+
+  <table id="results">
+    <thead><tr><th>Clip</th><th>Start in video</th><th>End</th><th>Length</th><th>Match</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <div class="actions" id="actions">
+    <button id="copyCmd">Copy ffmpeg cut commands</button>
+    <button id="dlJson">Download timestamps.json</button>
+  </div>
+  <pre id="cmdPre"></pre>
+
+  <div class="note">
+    <b>How it works:</b> each audio clip's waveform is slid across the video's audio track
+    (normalized cross-correlation) to find the exact matching moment — accurate to milliseconds,
+    even if the audio and video recordings started at different times or have different
+    loudness/EQ. This prototype reports timestamps and generates the cut commands;
+    a desktop version renders the video clips itself.
+  </div>
+</div>
+
+<script>
+const SR = 4000;                 // analysis sample rate
+const MAX_MATCH_SEC = 25;        // match on first N seconds of long clips
+const MIN_CONF = 0.35;
+
+let videoFile = null, clipFiles = [], results = [];
+
+function hookDrop(zone, input, multi, onPick) {
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => onPick(multi ? [...input.files] : input.files[0]));
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('over');
+    const fs = [...e.dataTransfer.files];
+    onPick(multi ? fs : fs[0]);
+  });
+}
+hookDrop(dropVideo, fileVideo, false, f => {
+  videoFile = f; pickedVideo.textContent = f ? f.name : ''; refresh();
+});
+hookDrop(dropClips, fileClips, true, fs => {
+  clipFiles = fs || []; pickedClips.textContent = clipFiles.length ? clipFiles.length + ' clip(s) selected' : ''; refresh();
+});
+function refresh() { go.disabled = !(videoFile && clipFiles.length); }
+
+async function decodeMono(file, sr) {
+  const buf = await file.arrayBuffer();
+  const ac = new (window.AudioContext || window.webkitAudioContext)();
+  const dec = await ac.decodeAudioData(buf);
+  ac.close();
+  const len = Math.ceil(dec.duration * sr);
+  const oc = new OfflineAudioContext(1, len, sr);
+  const src = oc.createBufferSource();
+  src.buffer = dec; src.connect(oc.destination); src.start();
+  const out = await oc.startRendering();
+  return out.getChannelData(0);
+}
+
+// ---- iterative radix-2 FFT ----
+function fft(re, im, inv) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = (inv ? 1 : -1) * 2 * Math.PI / len;
+    const wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cwr = 1, cwi = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const ur = re[i+k], ui = im[i+k];
+        const vr = re[i+k+len/2]*cwr - im[i+k+len/2]*cwi;
+        const vi = re[i+k+len/2]*cwi + im[i+k+len/2]*cwr;
+        re[i+k] = ur+vr; im[i+k] = ui+vi;
+        re[i+k+len/2] = ur-vr; im[i+k+len/2] = ui-vi;
+        const t = cwr*wr - cwi*wi; cwi = cwr*wi + cwi*wr; cwr = t;
+      }
+    }
+  }
+  if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+}
+const nextPow2 = x => 1 << Math.ceil(Math.log2(x));
+
+// ---- overlap-save normalized cross-correlation ----
+async function findOffset(episode, clip, onProgress) {
+  let cMean = 0; for (const v of clip) cMean += v; cMean /= clip.length;
+  const M = clip.length;
+  const h = new Float64Array(M);
+  let cEnergy = 0;
+  for (let i = 0; i < M; i++) { h[i] = clip[M-1-i] - cMean; cEnergy += h[i]*h[i]; }
+  if (cEnergy < 1e-12) return { idx: 0, conf: 0 };
+
+  const N = Math.max(nextPow2(2*M), 1 << 14);
+  const L = N - M + 1;
+  const Hre = new Float64Array(N), Him = new Float64Array(N);
+  Hre.set(h); fft(Hre, Him, false);
+
+  const E = episode.length;
+  const total = Math.max(1, E - M + 1);
+  let best = -1, bestIdx = 0;
+  const xre = new Float64Array(N), xim = new Float64Array(N);
+
+  for (let c0 = 0; c0 < total; c0 += L) {
+    xim.fill(0);
+    for (let i = 0; i < N; i++) xre[i] = (c0+i < E) ? episode[c0+i] : 0;
+    fft(xre, xim, false);
+    for (let i = 0; i < N; i++) {
+      const r = xre[i]*Hre[i] - xim[i]*Him[i];
+      xim[i] = xre[i]*Him[i] + xim[i]*Hre[i];
+      xre[i] = r;
+    }
+    fft(xre, xim, true);
+
+    // sliding window energy for corr indices c0 .. c0+L-1
+    let wSum = 0, wSq = 0;
+    const lim = Math.min(M, E - c0);
+    for (let i = 0; i < lim; i++) { const v = episode[c0+i]; wSum += v; wSq += v*v; }
+    const stop = Math.min(L, total - c0);
+    for (let k = 0; k < stop; k++) {
+      const energy = wSq - wSum*wSum/M;
+      const denom = Math.sqrt(Math.max(energy, 1e-12) * cEnergy);
+      const ncc = xre[M-1+k] / denom - (0); // mean-removed clip ⇒ corr already centered
+      if (ncc > best) { best = ncc; bestIdx = c0 + k; }
+      const out = episode[c0+k], inn = (c0+k+M < E) ? episode[c0+k+M] : 0;
+      wSum += inn - out; wSq += inn*inn - out*out;
+    }
+    onProgress(Math.min(1, (c0+L)/total));
+    await new Promise(r => setTimeout(r));
+  }
+  return { idx: bestIdx, conf: Math.max(0, Math.min(1, best)) };
+}
+
+const fmt = s => {
+  const m = Math.floor(s/60), sec = (s%60).toFixed(2).padStart(5,'0');
+  return `${String(m).padStart(2,'0')}:${sec}`;
+};
+
+go.addEventListener('click', async () => {
+  go.disabled = true; results = [];
+  tbody.innerHTML = ''; cmdPre.style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  actions.style.display = 'none';
+  progress.style.display = 'block';
+
+  try {
+    ptext.textContent = 'Decoding episode audio… (large files take a moment)';
+    barFill.style.width = '3%';
+    const episode = await decodeMono(videoFile, SR);
+
+    for (let i = 0; i < clipFiles.length; i++) {
+      const f = clipFiles[i];
+      ptext.textContent = `Matching clip ${i+1}/${clipFiles.length}: ${f.name}`;
+      const full = await decodeMono(f, SR);
+      const fullDur = full.length / SR;
+      const piece = full.length > MAX_MATCH_SEC*SR ? full.subarray(0, MAX_MATCH_SEC*SR) : full;
+      const { idx, conf } = await findOffset(episode, piece,
+        p => barFill.style.width = (((i + p) / clipFiles.length) * 100).toFixed(1) + '%');
+      const start = idx / SR;
+      results.push({ clip: f.name, start_sec: +start.toFixed(3),
+                     end_sec: +(start+fullDur).toFixed(3),
+                     duration_sec: +fullDur.toFixed(3), confidence: +conf.toFixed(3) });
+    }
+
+    progress.style.display = 'none';
+    document.getElementById('results').style.display = 'table';
+    actions.style.display = 'flex';
+    for (const r of results) {
+      const cls = r.confidence >= MIN_CONF ? 'hi' : 'lo';
+      const label = r.confidence >= MIN_CONF ? (r.confidence*100).toFixed(0)+'%' : '⚠ ' + (r.confidence*100).toFixed(0)+'%';
+      tbody.insertAdjacentHTML('beforeend',
+        `<tr><td>${r.clip}</td><td>${fmt(r.start_sec)}</td><td>${fmt(r.end_sec)}</td>
+         <td>${r.duration_sec.toFixed(1)}s</td><td><span class="conf ${cls}">${label}</span></td></tr>`);
+    }
+  } catch (e) {
+    progress.style.display = 'none';
+    alert('Error: ' + e.message + '\n(Tip: the browser must be able to decode the file — mp4/mp3/wav work best.)');
+  }
+  go.disabled = false;
+});
+
+copyCmd.addEventListener('click', () => {
+  const v = videoFile.name;
+  const cmds = results.map(r => {
+    const out = r.clip.replace(/\.[^.]+$/, '') + '.mp4';
+    return `ffmpeg -ss ${r.start_sec} -i "${v}" -t ${r.duration_sec} -c:v libx264 -crf 20 -c:a aac "${out}"`;
+  }).join('\n');
+  navigator.clipboard.writeText(cmds);
+  cmdPre.textContent = cmds; cmdPre.style.display = 'block';
+  copyCmd.textContent = 'Copied ✓'; setTimeout(() => copyCmd.textContent = 'Copy ffmpeg cut commands', 1500);
+});
+
+dlJson.addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' }));
+  a.download = 'timestamps.json'; a.click();
+});
+</script>
+</body>
+</html>
