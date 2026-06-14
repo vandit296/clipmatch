@@ -199,35 +199,41 @@ const fmt=s=>{const m=Math.floor(s/60),sec=(s%60).toFixed(2).padStart(5,'0');ret
 
 // ---------- ffmpeg.wasm ----------
 let ffmpeg=null, ffReady=false, inputWritten=false, inputName='input.mp4';
-const CDNS=['https://cdn.jsdelivr.net/npm','https://unpkg.com'];
-function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error('could not load '+src+' (CDN blocked?)'));document.head.appendChild(s);});}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error('could not load '+src));document.head.appendChild(s);});}
+function sources(){
+  const cdn=b=>({name:b,ff:`${b}/@ffmpeg/[email protected]/dist/umd/ffmpeg.js`,util:`${b}/@ffmpeg/[email protected]/dist/umd/index.js`,worker:`${b}/@ffmpeg/[email protected]/dist/umd/814.ffmpeg.js`,core:`${b}/@ffmpeg/[email protected]/dist/umd/ffmpeg-core.js`,wasm:`${b}/@ffmpeg/[email protected]/dist/umd/ffmpeg-core.wasm`});
+  return [
+    {name:'this site',ff:'vendor/ffmpeg.js',util:'vendor/ffmpeg-util.js',worker:'vendor/814.ffmpeg.js',core:'vendor/ffmpeg-core.js',wasm:'vendor/ffmpeg-core.wasm'},
+    cdn('https://cdn.jsdelivr.net/npm'),
+    cdn('https://unpkg.com')
+  ];
+}
+let SRC=null;
 async function loadLibs(){
-  if(window.FFmpegWASM&&window.FFmpegUtil)return CDNS[0];
+  if(window.FFmpegWASM&&window.FFmpegUtil&&SRC)return SRC;
   let lastErr;
-  for(const base of CDNS){
+  for(const src of sources()){
     try{
-      log('Fetching engine from '+base+' …');
-      if(!window.FFmpegWASM)await loadScript(`${base}/@ffmpeg/[email protected]/dist/umd/ffmpeg.js`);
-      if(!window.FFmpegUtil)await loadScript(`${base}/@ffmpeg/[email protected]/dist/umd/index.js`);
-      if(window.FFmpegWASM&&window.FFmpegUtil)return base;
-    }catch(e){lastErr=e;log('  '+e.message);}
+      log('Trying engine from: '+src.name+' …');
+      if(!window.FFmpegWASM)await loadScript(src.ff);
+      if(!window.FFmpegUtil)await loadScript(src.util);
+      if(window.FFmpegWASM&&window.FFmpegUtil){SRC=src;return src;}
+    }catch(e){lastErr=e;log('  could not load from '+src.name);}
   }
-  throw lastErr||new Error('engine scripts unavailable from any CDN');
+  throw lastErr||new Error('engine scripts unavailable');
 }
 async function ensureFFmpeg(){
   if(ffReady)return true;
   try{
     setFF('busy','loading engine (~30 MB, one time)…');
-    const base=await loadLibs();
+    const src=await loadLibs();
     const {FFmpeg}=FFmpegWASM, {toBlobURL}=FFmpegUtil;
     ffmpeg=new FFmpeg();
     ffmpeg.on('log',({message})=>log(message));
-    const ffBase=`${base}/@ffmpeg/[email protected]/dist/umd`;
-    const coreBase=`${base}/@ffmpeg/[email protected]/dist/umd`;
     await ffmpeg.load({
-      classWorkerURL:await toBlobURL(`${ffBase}/814.ffmpeg.js`,'text/javascript'),
-      coreURL:await toBlobURL(`${coreBase}/ffmpeg-core.js`,'text/javascript'),
-      wasmURL:await toBlobURL(`${coreBase}/ffmpeg-core.wasm`,'application/wasm')
+      classWorkerURL:await toBlobURL(src.worker,'text/javascript'),
+      coreURL:await toBlobURL(src.core,'text/javascript'),
+      wasmURL:await toBlobURL(src.wasm,'application/wasm')
     });
     ffReady=true;setFF('ok','ready');return true;
   }catch(e){setFF('err','failed to load — '+e.message);log('LOAD ERROR: '+e);return false;}
