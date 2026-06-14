@@ -147,7 +147,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd/ffmpeg.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd/util.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd/index.js"></script>
 <script>
 const SR=4000, MAX_MATCH_SEC=25, MIN_CONF=0.35;
 let videoFile=null, clipFiles=[], results=[];
@@ -208,10 +208,12 @@ async function ensureFFmpeg(){
     const {FFmpeg}=FFmpegWASM, {toBlobURL}=FFmpegUtil;
     ffmpeg=new FFmpeg();
     ffmpeg.on('log',({message})=>log(message));
-    const base='https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd';
+    const ffBase='https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd';
+    const coreBase='https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd';
     await ffmpeg.load({
-      coreURL:await toBlobURL(`${base}/ffmpeg-core.js`,'text/javascript'),
-      wasmURL:await toBlobURL(`${base}/ffmpeg-core.wasm`,'application/wasm')
+      classWorkerURL:await toBlobURL(`${ffBase}/814.ffmpeg.js`,'text/javascript'),
+      coreURL:await toBlobURL(`${coreBase}/ffmpeg-core.js`,'text/javascript'),
+      wasmURL:await toBlobURL(`${coreBase}/ffmpeg-core.wasm`,'application/wasm')
     });
     ffReady=true;setFF('ok','ready');return true;
   }catch(e){setFF('err','failed to load — '+e.message);log('LOAD ERROR: '+e);return false;}
