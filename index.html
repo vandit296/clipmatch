@@ -167,13 +167,17 @@ function fft(re, im, inv) {
 const nextPow2 = x => 1 << Math.ceil(Math.log2(x));
 
 // ---- overlap-save normalized cross-correlation ----
-async function findOffset(episode, clip, onProgress) {
-  let cMean = 0; for (const v of clip) cMean += v; cMean /= clip.length;
+// `episode` must already be globally de-meaned; `meanPow` = its mean centered power.
+async function findOffset(episode, clip, meanPow, onProgress) {
   const M = clip.length;
+  let cMean = 0; for (let i = 0; i < M; i++) cMean += clip[i]; cMean /= M;
   const h = new Float64Array(M);
   let cEnergy = 0;
   for (let i = 0; i < M; i++) { h[i] = clip[M-1-i] - cMean; cEnergy += h[i]*h[i]; }
   if (cEnergy < 1e-12) return { idx: 0, conf: 0 };
+  // Relative energy floor: windows quieter than 0.1% of typical energy can't yield a
+  // spurious high score. This is what stops unmatched clips reading as ~100%.
+  const energyFloor = Math.max(1e-9, 1e-3 * meanPow * M);
 
   const N = Math.max(nextPow2(2*M), 1 << 14);
   const L = N - M + 1;
@@ -196,15 +200,20 @@ async function findOffset(episode, clip, onProgress) {
     }
     fft(xre, xim, true);
 
-    // sliding window energy for corr indices c0 .. c0+L-1
-    let wSum = 0, wSq = 0;
-    const lim = Math.min(M, E - c0);
-    for (let i = 0; i < lim; i++) { const v = episode[c0+i]; wSum += v; wSq += v*v; }
     const stop = Math.min(L, total - c0);
+    // sliding window energy, re-synced exactly every 8192 steps so float drift can't accumulate
+    let wSum = 0, wSq = 0;
+    const resync = p => {
+      wSum = 0; wSq = 0;
+      const lim = Math.min(M, E - p);
+      for (let i = 0; i < lim; i++) { const v = episode[p+i]; wSum += v; wSq += v*v; }
+    };
+    resync(c0);
     for (let k = 0; k < stop; k++) {
-      const energy = wSq - wSum*wSum/M;
-      const denom = Math.sqrt(Math.max(energy, 1e-12) * cEnergy);
-      const ncc = xre[M-1+k] / denom - (0); // mean-removed clip ⇒ corr already centered
+      if ((k & 8191) === 0 && k > 0) resync(c0 + k);
+      let energy = wSq - wSum*wSum/M; if (energy < 0) energy = 0;
+      const denom = Math.sqrt(Math.max(energy, energyFloor) * cEnergy);
+      const ncc = xre[M-1+k] / denom; // mean-removed clip ⇒ corr already centered
       if (ncc > best) { best = ncc; bestIdx = c0 + k; }
       const out = episode[c0+k], inn = (c0+k+M < E) ? episode[c0+k+M] : 0;
       wSum += inn - out; wSq += inn*inn - out*out;
@@ -231,6 +240,11 @@ go.addEventListener('click', async () => {
     ptext.textContent = 'Decoding episode audio… (large files take a moment)';
     barFill.style.width = '3%';
     const episode = await decodeMono(videoFile, SR);
+    // de-mean the episode once, and measure its typical (centered) power for the energy floor
+    let eMean = 0; for (let i = 0; i < episode.length; i++) eMean += episode[i];
+    eMean /= (episode.length || 1);
+    let ePow = 0; for (let i = 0; i < episode.length; i++) { const v = episode[i] - eMean; episode[i] = v; ePow += v*v; }
+    const meanPow = ePow / (episode.length || 1);
 
     for (let i = 0; i < clipFiles.length; i++) {
       const f = clipFiles[i];
@@ -238,7 +252,7 @@ go.addEventListener('click', async () => {
       const full = await decodeMono(f, SR);
       const fullDur = full.length / SR;
       const piece = full.length > MAX_MATCH_SEC*SR ? full.subarray(0, MAX_MATCH_SEC*SR) : full;
-      const { idx, conf } = await findOffset(episode, piece,
+      const { idx, conf } = await findOffset(episode, piece, meanPow,
         p => barFill.style.width = (((i + p) / clipFiles.length) * 100).toFixed(1) + '%');
       const start = idx / SR;
       results.push({ clip: f.name, start_sec: +start.toFixed(3),
