@@ -5,67 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ClipMatch — audio clips → video clips</title>
 <style>
-  :root {
-    --bg: #0f1117; --panel: #181b24; --panel2: #1f2330;
-    --text: #e8eaf0; --muted: #8a90a3; --accent: #4f7cff; --good: #34c77b; --warn: #f5a623;
-    --border: #2a2f3e;
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; padding: 40px 20px; }
-  .wrap { max-width: 880px; margin: 0 auto; }
-  h1 { font-size: 26px; letter-spacing: -0.5px; }
-  h1 span { color: var(--accent); }
-  .sub { color: var(--muted); margin: 6px 0 30px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .drop {
-    background: var(--panel); border: 2px dashed var(--border); border-radius: 14px;
-    padding: 28px 20px; text-align: center; cursor: pointer; transition: all .15s;
-  }
-  .drop:hover, .drop.over { border-color: var(--accent); background: var(--panel2); }
-  .drop .icon { font-size: 30px; }
-  .drop b { display: block; margin-top: 8px; }
-  .drop small { color: var(--muted); }
-  .drop .picked { color: var(--good); font-weight: 600; margin-top: 6px; display: block; }
-  button.go {
-    margin-top: 20px; width: 100%; padding: 14px; font-size: 16px; font-weight: 700;
-    background: var(--accent); color: #fff; border: 0; border-radius: 12px; cursor: pointer;
-  }
-  button.go:disabled { background: var(--panel2); color: var(--muted); cursor: not-allowed; }
-  .privacy { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 10px; }
-  .progress { margin-top: 24px; display: none; }
-  .bar { height: 8px; background: var(--panel2); border-radius: 4px; overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 0%; background: var(--accent); transition: width .2s; }
-  .ptext { color: var(--muted); font-size: 13px; margin-top: 6px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 24px; display: none; }
-  th { text-align: left; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
-  .conf { display: inline-block; min-width: 52px; text-align: center; padding: 2px 8px; border-radius: 20px; font-size: 12.5px; font-weight: 700; }
-  .conf.hi { background: rgba(52,199,123,.15); color: var(--good); }
-  .conf.lo { background: rgba(245,166,35,.15); color: var(--warn); }
-  .actions { display: none; gap: 12px; margin-top: 20px; }
-  .actions button { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-weight: 600; cursor: pointer; }
-  .actions button:hover { border-color: var(--accent); }
-  pre { display: none; margin-top: 16px; background: #0a0c10; border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-size: 12.5px; overflow-x: auto; color: #b9c1d9; }
-  .note { margin-top: 28px; color: var(--muted); font-size: 13px; background: var(--panel); border-radius: 10px; padding: 14px 16px; }
+  :root{--bg:#0f1117;--panel:#181b24;--panel2:#1f2330;--code:#0a0c10;--text:#e8eaf0;--muted:#8a90a3;--accent:#4f7cff;--good:#34c77b;--warn:#f5a623;--border:#2a2f3e;}
+  *{box-sizing:border-box;margin:0;}
+  body{background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;padding:40px 20px;}
+  .wrap{max-width:880px;margin:0 auto;}
+  h1{font-size:26px;letter-spacing:-.5px;}h1 span{color:var(--accent);}
+  .sub{color:var(--muted);margin:6px 0 18px;}
+  .ribbon{background:rgba(79,124,255,.12);border:1px solid #34406b;color:#cdd7ff;font-size:12.5px;padding:8px 12px;border-radius:8px;margin-bottom:22px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .drop{background:var(--panel);border:2px dashed var(--border);border-radius:14px;padding:26px 18px;text-align:center;cursor:pointer;transition:.15s;}
+  .drop:hover,.drop.over{border-color:var(--accent);background:var(--panel2);}
+  .drop .icon{font-size:28px;}.drop b{display:block;margin-top:8px;}.drop small{color:var(--muted);}
+  .drop .picked{color:var(--good);font-weight:600;margin-top:6px;display:block;}
+  button.go{margin-top:18px;width:100%;padding:14px;font-size:16px;font-weight:700;background:var(--accent);color:#fff;border:0;border-radius:12px;cursor:pointer;}
+  button.go:disabled{background:var(--panel2);color:var(--muted);cursor:not-allowed;}
+  .privacy{text-align:center;color:var(--muted);font-size:12.5px;margin-top:10px;}
+  .status{margin-top:14px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);}
+  .dot.ok{background:var(--good);}.dot.busy{background:var(--warn);}.dot.err{background:#e2504f;}
+  .progress{margin-top:18px;display:none;}
+  .bar{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;}
+  .bar i{display:block;height:100%;width:0%;background:var(--accent);transition:width .2s;}
+  .ptext{color:var(--muted);font-size:13px;margin-top:6px;}
+  table{width:100%;border-collapse:collapse;margin-top:24px;display:none;}
+  th{text-align:left;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--border);}
+  td{padding:11px 10px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;}
+  .conf{display:inline-block;min-width:58px;text-align:center;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;}
+  .conf.hi{background:rgba(52,199,123,.15);color:var(--good);}.conf.lo{background:rgba(245,166,35,.15);color:var(--warn);}
+  .cut{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap;}
+  .cut:hover{border-color:var(--accent);}.cut:disabled{opacity:.55;cursor:not-allowed;}
+  .allbtn{display:none;margin-top:18px;width:100%;padding:13px;border-radius:11px;border:0;background:var(--good);color:#04231a;font-weight:700;font-size:15px;cursor:pointer;}
+  .allbtn:disabled{opacity:.6;cursor:not-allowed;}
+  details{margin-top:18px;}summary{color:var(--muted);font-size:13px;cursor:pointer;}
+  pre.log{margin-top:10px;background:var(--code);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11.5px;max-height:180px;overflow:auto;color:#9aa3bd;white-space:pre-wrap;}
+  .note{margin-top:22px;color:var(--muted);font-size:13px;background:var(--panel);border-radius:10px;padding:14px 16px;line-height:1.6;}
+  .note b{color:var(--text);}
+  .legend{display:none;color:var(--muted);font-size:13px;margin-top:12px;line-height:1.6;}
+  .legend b{color:var(--text);}.legend .wf{color:var(--warn);font-weight:600;}
+  .diy{display:none;margin-top:24px;border-top:1px solid var(--border);padding-top:18px;}
+  .diyhead{font-size:14px;font-weight:600;margin-bottom:12px;}
+  .diyrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .diybtn{padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-weight:600;cursor:pointer;}
+  .diybtn:hover{border-color:var(--accent);}
+  pre.cmd{display:none;margin-top:14px;background:var(--code);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12.5px;overflow-x:auto;color:#b9c1d9;white-space:pre;}
+  .faq{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-top:16px;}
+  .faq h3{font-size:15px;margin-bottom:8px;}.faq p,.faq li{font-size:13.5px;color:var(--muted);line-height:1.6;}
+  .faq p{margin-bottom:8px;}.faq ul{margin:8px 0 14px 18px;}.faq li{margin-bottom:6px;}.faq a{color:var(--accent);text-decoration:none;}
+  code{background:var(--code);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#b9c1d9;}
+  .dl{display:inline-block;background:var(--accent);color:#fff;padding:9px 16px;border-radius:8px;font-weight:600;font-size:13.5px;text-decoration:none;margin-top:8px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+  .card h3{font-size:15px;margin-bottom:6px;}
+  .card>p{font-size:13.5px;color:var(--muted);line-height:1.55;margin-bottom:12px;}
+  .card ol{margin:0 0 14px 18px;}.card ol li{font-size:13.5px;line-height:1.5;margin-bottom:7px;}
+  .card .diybtn{width:100%;}
+  .card details{margin-top:14px;}
+  .card summary{color:var(--accent);font-size:13.5px;cursor:pointer;font-weight:600;list-style:none;}
+  .steps{margin-top:12px;}
+  .steps p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+  .steps b{color:var(--text);}
+  .steps ul{margin:6px 0 10px 18px;}.steps li{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:8px;}
+  .steps i{color:var(--text);font-style:normal;background:var(--panel2);padding:0 5px;border-radius:4px;}
+  kbd{background:var(--panel2);border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:12px;font-family:inherit;}
+  @media(max-width:620px){.grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Clip<span>Match</span></h1>
-  <p class="sub">Made clips in the <b>audio</b> file? Get the same clips from the <b>video</b> file — automatically.</p>
+  <p class="sub">Made clips in the <b>audio</b> file? Get the same clips from the <b>video</b> file — cut right here, no install.</p>
+  <div class="ribbon">New: clips are cut <b>right in your browser</b> — no install, nothing uploaded. Very large episode files can be slow or memory-heavy; if so, use the timestamps or ffmpeg options below.</div>
 
   <div class="grid">
     <div class="drop" id="dropVideo">
-      <div class="icon">🎬</div>
-      <b>Episode video</b>
-      <small>the full video file of the show (.mp4, .mov…)</small>
+      <div class="icon">🎬</div><b>Episode video</b>
+      <small>the full video file (.mp4, .mov…)</small>
       <span class="picked" id="pickedVideo"></span>
-      <input type="file" id="fileVideo" accept="video/*,audio/*" hidden>
+      <input type="file" id="fileVideo" accept="video/*" hidden>
     </div>
     <div class="drop" id="dropClips">
-      <div class="icon">🎧</div>
-      <b>Audio clips</b>
-      <small>the clips exported from Descript (.mp3, .wav…)</small>
+      <div class="icon">🎧</div><b>Audio clips</b>
+      <small>exported from Descript (.mp3, .wav…)</small>
       <span class="picked" id="pickedClips"></span>
       <input type="file" id="fileClips" accept="audio/*,.mp3,.wav,.m4a" multiple hidden>
     </div>
@@ -73,225 +92,207 @@
 
   <button class="go" id="go" disabled>Find clips in video</button>
   <p class="privacy">Runs 100% in your browser — nothing is uploaded anywhere.</p>
+  <div class="status"><span class="dot" id="ffdot"></span><span id="ffstatus">Video cutter: not loaded yet</span></div>
 
-  <div class="progress" id="progress">
-    <div class="bar"><i id="barFill"></i></div>
-    <div class="ptext" id="ptext"></div>
-  </div>
+  <div class="progress" id="progress"><div class="bar"><i id="barFill"></i></div><div class="ptext" id="ptext"></div></div>
 
   <table id="results">
-    <thead><tr><th>Clip</th><th>Start in video</th><th>End</th><th>Length</th><th>Match</th></tr></thead>
+    <thead><tr><th>Clip</th><th>Start</th><th>End</th><th>Length</th><th>Match</th><th></th></tr></thead>
     <tbody id="tbody"></tbody>
   </table>
+  <p class="legend" id="legend"><b>Match</b> = how sure ClipMatch is the clip sits at this spot. ~100% is a solid hit; a <span class="wf">⚠ low</span> score means it probably isn't in this video (edited, or wrong file) — check those before using.</p>
+  <button class="allbtn" id="allbtn">⬇ Cut &amp; download all clips — in your browser</button>
 
-  <div class="actions" id="actions">
-    <button id="copyCmd">Copy ffmpeg cut commands</button>
-    <button id="dlJson">Download timestamps.json</button>
-  </div>
-  <pre id="cmdPre"></pre>
+  <div class="diy" id="diy">
+    <div class="diyhead">Rather not cut in the browser? Two other ways:</div>
 
-  <div class="note">
-    <b>How it works:</b> each audio clip's waveform is slid across the video's audio track
-    (normalized cross-correlation) to find the exact matching moment — accurate to milliseconds,
-    even if the audio and video recordings started at different times or have different
-    loudness/EQ. This prototype reports timestamps and generates the cut commands;
-    a desktop version renders the video clips itself.
+    <div class="card">
+      <h3>① Use your own editor — Descript, Premiere, CapCut…</h3>
+      <p>Best if you already edit somewhere. No new tools, no terminal.</p>
+      <ol>
+        <li>Click <b>Download timestamps.json</b> (or just read the table above).</li>
+        <li>In your editor, move the playhead to a clip's <b>Start</b> time and set an in-point.</li>
+        <li>Go to its <b>End</b> time, set an out-point, and export that range.</li>
+        <li>Repeat per clip. Skip any <span style="color:var(--warn)">⚠ low</span> row, or check it by ear first.</li>
+      </ol>
+      <button class="diybtn" id="dlJson">Download timestamps.json</button>
+    </div>
+
+    <div class="card">
+      <h3>② Run the ffmpeg commands yourself</h3>
+      <p>Fastest for a whole batch. The commands tell <b>ffmpeg</b> (a free tool) exactly what to cut — one line per clip.</p>
+      <button class="diybtn" id="copyCmd">Copy ffmpeg commands</button>
+      <pre class="cmd" id="cmdPre"></pre>
+      <details>
+        <summary>How do I actually run these? ▸</summary>
+        <div class="steps">
+          <p><b>Step 1 — install ffmpeg (one time).</b> Mac: open Terminal and run <code>brew install ffmpeg</code> (needs Homebrew from <a href="https://brew.sh" target="_blank" rel="noopener">brew.sh</a>). Windows: download it below, unzip, and add it to your PATH.</p>
+          <p><b>Step 2 — open a terminal.</b> A terminal is a window where you type commands. Mac: open the <b>Terminal</b> app (press <kbd>⌘</kbd>+<kbd>Space</kbd>, type “Terminal”, press <kbd>Enter</kbd>). Windows: open <b>PowerShell</b> (search it in the Start menu).</p>
+          <p><b>Step 3 — point the terminal at the folder that holds your video.</b> The <code>cd</code> command (“change directory”) moves it there. Pick whichever is easiest — no dragging needed:</p>
+          <ul>
+            <li><b>Type the path:</b> e.g. <code>cd ~/Downloads/episode</code> — swap in the folder your video lives in.</li>
+            <li><b>Copy the path from Finder (Mac):</b> hold <kbd>Option</kbd>, right-click the folder → <i>Copy “…” as Pathname</i>; then type <code>cd </code> (with a space) and paste (<kbd>⌘</kbd>+<kbd>V</kbd>), <kbd>Enter</kbd>.</li>
+            <li><b>Open the terminal already inside the folder:</b> Mac — right-click the folder → <i>New Terminal at Folder</i> (enable it once in System Settings ▸ Keyboard ▸ Shortcuts ▸ Services). Windows — hold <kbd>Shift</kbd>, right-click the folder → <i>Open in Terminal</i>. Then there's no <code>cd</code> to type at all.</li>
+          </ul>
+          <p><b>Step 4 — paste the commands</b> (<kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>V</kbd>) and press <kbd>Enter</kbd>. Each line makes one clip in that folder. A line reads: <code>ffmpeg -ss START -i "video" -t LENGTH … "clip.mp4"</code> — i.e. <i>start time</i>, <i>your video</i>, <i>clip length</i>, <i>output name</i>.</p>
+        </div>
+      </details>
+      <a class="dl" href="https://ffmpeg.org/download.html" target="_blank" rel="noopener">Download ffmpeg ↗</a>
+    </div>
   </div>
+
+  <details><summary>Show cutter log</summary><pre class="log" id="log"></pre></details>
+
+  <div class="note"><b>How it works:</b> the waveform of each audio clip is matched against the video's audio track (normalized cross-correlation) to find the exact moment, then ffmpeg.wasm cuts the video right here in the page. No ffmpeg install, no terminal — the tradeoff is the ~30&nbsp;MB engine load and browser memory limits on very large videos.</div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd/ffmpeg.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd/util.js"></script>
 <script>
-const SR = 4000;                 // analysis sample rate
-const MAX_MATCH_SEC = 25;        // match on first N seconds of long clips
-const MIN_CONF = 0.35;
+const SR=4000, MAX_MATCH_SEC=25, MIN_CONF=0.35;
+let videoFile=null, clipFiles=[], results=[];
+const logEl=document.getElementById('log');
+const log=m=>{logEl.textContent+=m+'\n';logEl.scrollTop=logEl.scrollHeight;};
+function setFF(state,msg){const d=document.getElementById('ffdot');d.className='dot'+(state?' '+state:'');document.getElementById('ffstatus').textContent='Video cutter: '+msg;}
 
-let videoFile = null, clipFiles = [], results = [];
-
-function hookDrop(zone, input, multi, onPick) {
-  zone.addEventListener('click', () => input.click());
-  input.addEventListener('change', () => onPick(multi ? [...input.files] : input.files[0]));
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('over');
-    const fs = [...e.dataTransfer.files];
-    onPick(multi ? fs : fs[0]);
-  });
+function hookDrop(zone,input,multi,onPick){
+  zone.addEventListener('click',()=>input.click());
+  input.addEventListener('change',()=>onPick(multi?[...input.files]:input.files[0]));
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('over');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('over'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('over');const fs=[...e.dataTransfer.files];onPick(multi?fs:fs[0]);});
 }
-hookDrop(dropVideo, fileVideo, false, f => {
-  videoFile = f; pickedVideo.textContent = f ? f.name : ''; refresh();
-});
-hookDrop(dropClips, fileClips, true, fs => {
-  clipFiles = fs || []; pickedClips.textContent = clipFiles.length ? clipFiles.length + ' clip(s) selected' : ''; refresh();
-});
-function refresh() { go.disabled = !(videoFile && clipFiles.length); }
+hookDrop(dropVideo,fileVideo,false,f=>{videoFile=f;pickedVideo.textContent=f?f.name:'';refresh();});
+hookDrop(dropClips,fileClips,true,fs=>{clipFiles=fs||[];pickedClips.textContent=clipFiles.length?clipFiles.length+' clip(s) selected':'';refresh();});
+function refresh(){go.disabled=!(videoFile&&clipFiles.length);}
 
-async function decodeMono(file, sr) {
-  const buf = await file.arrayBuffer();
-  const ac = new (window.AudioContext || window.webkitAudioContext)();
-  const dec = await ac.decodeAudioData(buf);
-  ac.close();
-  const len = Math.ceil(dec.duration * sr);
-  const oc = new OfflineAudioContext(1, len, sr);
-  const src = oc.createBufferSource();
-  src.buffer = dec; src.connect(oc.destination); src.start();
-  const out = await oc.startRendering();
-  return out.getChannelData(0);
+async function decodeMono(file,sr){
+  const buf=await file.arrayBuffer();
+  const ac=new (window.AudioContext||window.webkitAudioContext)();
+  const dec=await ac.decodeAudioData(buf);ac.close();
+  const oc=new OfflineAudioContext(1,Math.ceil(dec.duration*sr),sr);
+  const s=oc.createBufferSource();s.buffer=dec;s.connect(oc.destination);s.start();
+  return (await oc.startRendering()).getChannelData(0);
 }
-
-// ---- iterative radix-2 FFT ----
-function fft(re, im, inv) {
-  const n = re.length;
-  for (let i = 1, j = 0; i < n; i++) {
-    let bit = n >> 1;
-    for (; j & bit; bit >>= 1) j ^= bit;
-    j ^= bit;
-    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
-  }
-  for (let len = 2; len <= n; len <<= 1) {
-    const ang = (inv ? 1 : -1) * 2 * Math.PI / len;
-    const wr = Math.cos(ang), wi = Math.sin(ang);
-    for (let i = 0; i < n; i += len) {
-      let cwr = 1, cwi = 0;
-      for (let k = 0; k < len / 2; k++) {
-        const ur = re[i+k], ui = im[i+k];
-        const vr = re[i+k+len/2]*cwr - im[i+k+len/2]*cwi;
-        const vi = re[i+k+len/2]*cwi + im[i+k+len/2]*cwr;
-        re[i+k] = ur+vr; im[i+k] = ui+vi;
-        re[i+k+len/2] = ur-vr; im[i+k+len/2] = ui-vi;
-        const t = cwr*wr - cwi*wi; cwi = cwr*wi + cwi*wr; cwr = t;
-      }
-    }
-  }
-  if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
-}
-const nextPow2 = x => 1 << Math.ceil(Math.log2(x));
-
-// ---- overlap-save normalized cross-correlation ----
-// `episode` must already be globally de-meaned; `meanPow` = its mean centered power.
-async function findOffset(episode, clip, meanPow, onProgress) {
-  const M = clip.length;
-  let cMean = 0; for (let i = 0; i < M; i++) cMean += clip[i]; cMean /= M;
-  const h = new Float64Array(M);
-  let cEnergy = 0;
-  for (let i = 0; i < M; i++) { h[i] = clip[M-1-i] - cMean; cEnergy += h[i]*h[i]; }
-  if (cEnergy < 1e-12) return { idx: 0, conf: 0 };
-  // Relative energy floor: windows quieter than 0.1% of typical energy can't yield a
-  // spurious high score. This is what stops unmatched clips reading as ~100%.
-  const energyFloor = Math.max(1e-9, 1e-3 * meanPow * M);
-
-  const N = Math.max(nextPow2(2*M), 1 << 14);
-  const L = N - M + 1;
-  const Hre = new Float64Array(N), Him = new Float64Array(N);
-  Hre.set(h); fft(Hre, Him, false);
-
-  const E = episode.length;
-  const total = Math.max(1, E - M + 1);
-  let best = -1, bestIdx = 0;
-  const xre = new Float64Array(N), xim = new Float64Array(N);
-
-  for (let c0 = 0; c0 < total; c0 += L) {
-    xim.fill(0);
-    for (let i = 0; i < N; i++) xre[i] = (c0+i < E) ? episode[c0+i] : 0;
-    fft(xre, xim, false);
-    for (let i = 0; i < N; i++) {
-      const r = xre[i]*Hre[i] - xim[i]*Him[i];
-      xim[i] = xre[i]*Him[i] + xim[i]*Hre[i];
-      xre[i] = r;
-    }
-    fft(xre, xim, true);
-
-    const stop = Math.min(L, total - c0);
-    // sliding window energy, re-synced exactly every 8192 steps so float drift can't accumulate
-    let wSum = 0, wSq = 0;
-    const resync = p => {
-      wSum = 0; wSq = 0;
-      const lim = Math.min(M, E - p);
-      for (let i = 0; i < lim; i++) { const v = episode[p+i]; wSum += v; wSq += v*v; }
-    };
+function fft(re,im,inv){const n=re.length;for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}
+for(let len=2;len<=n;len<<=1){const ang=(inv?1:-1)*2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);for(let i=0;i<n;i+=len){let cwr=1,cwi=0;for(let k=0;k<len/2;k++){const ur=re[i+k],ui=im[i+k];const vr=re[i+k+len/2]*cwr-im[i+k+len/2]*cwi;const vi=re[i+k+len/2]*cwi+im[i+k+len/2]*cwr;re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;const t=cwr*wr-cwi*wi;cwi=cwr*wi+cwi*wr;cwr=t;}}}if(inv)for(let i=0;i<n;i++){re[i]/=n;im[i]/=n;}}
+const nextPow2=x=>1<<Math.ceil(Math.log2(x));
+async function findOffset(episode,clip,meanPow,onProgress){
+  const M=clip.length;let cMean=0;for(let i=0;i<M;i++)cMean+=clip[i];cMean/=M;
+  const h=new Float64Array(M);let cE=0;for(let i=0;i<M;i++){h[i]=clip[M-1-i]-cMean;cE+=h[i]*h[i];}
+  if(cE<1e-12)return{idx:0,conf:0};
+  const floor=Math.max(1e-9,1e-3*meanPow*M);
+  const N=Math.max(nextPow2(2*M),1<<14),L=N-M+1;
+  const Hre=new Float64Array(N),Him=new Float64Array(N);Hre.set(h);fft(Hre,Him,false);
+  const E=episode.length,total=Math.max(1,E-M+1);let best=-1,bestIdx=0;
+  const xre=new Float64Array(N),xim=new Float64Array(N);
+  for(let c0=0;c0<total;c0+=L){
+    xim.fill(0);for(let i=0;i<N;i++)xre[i]=(c0+i<E)?episode[c0+i]:0;fft(xre,xim,false);
+    for(let i=0;i<N;i++){const r=xre[i]*Hre[i]-xim[i]*Him[i];xim[i]=xre[i]*Him[i]+xim[i]*Hre[i];xre[i]=r;}fft(xre,xim,true);
+    const stop=Math.min(L,total-c0);let wSum=0,wSq=0;
+    const resync=p=>{wSum=0;wSq=0;const lim=Math.min(M,E-p);for(let i=0;i<lim;i++){const v=episode[p+i];wSum+=v;wSq+=v*v;}};
     resync(c0);
-    for (let k = 0; k < stop; k++) {
-      if ((k & 8191) === 0 && k > 0) resync(c0 + k);
-      let energy = wSq - wSum*wSum/M; if (energy < 0) energy = 0;
-      const denom = Math.sqrt(Math.max(energy, energyFloor) * cEnergy);
-      const ncc = xre[M-1+k] / denom; // mean-removed clip ⇒ corr already centered
-      if (ncc > best) { best = ncc; bestIdx = c0 + k; }
-      const out = episode[c0+k], inn = (c0+k+M < E) ? episode[c0+k+M] : 0;
-      wSum += inn - out; wSq += inn*inn - out*out;
-    }
-    onProgress(Math.min(1, (c0+L)/total));
-    await new Promise(r => setTimeout(r));
+    for(let k=0;k<stop;k++){if((k&8191)===0&&k>0)resync(c0+k);let en=wSq-wSum*wSum/M;if(en<0)en=0;const denom=Math.sqrt(Math.max(en,floor)*cE);const ncc=xre[M-1+k]/denom;if(ncc>best){best=ncc;bestIdx=c0+k;}const out=episode[c0+k],inn=(c0+k+M<E)?episode[c0+k+M]:0;wSum+=inn-out;wSq+=inn*inn-out*out;}
+    onProgress(Math.min(1,(c0+L)/total));await new Promise(r=>setTimeout(r));
   }
-  return { idx: bestIdx, conf: Math.max(0, Math.min(1, best)) };
+  return{idx:bestIdx,conf:Math.max(0,Math.min(1,best))};
+}
+const fmt=s=>{const m=Math.floor(s/60),sec=(s%60).toFixed(2).padStart(5,'0');return `${String(m).padStart(2,'0')}:${sec}`;};
+
+// ---------- ffmpeg.wasm ----------
+let ffmpeg=null, ffReady=false, inputWritten=false, inputName='input.mp4';
+async function ensureFFmpeg(){
+  if(ffReady)return true;
+  try{
+    setFF('busy','loading engine (~30 MB, one time)…');
+    const {FFmpeg}=FFmpegWASM, {toBlobURL}=FFmpegUtil;
+    ffmpeg=new FFmpeg();
+    ffmpeg.on('log',({message})=>log(message));
+    const base='https://cdn.jsdelivr.net/npm/@ffmpeg/[email protected]/dist/umd';
+    await ffmpeg.load({
+      coreURL:await toBlobURL(`${base}/ffmpeg-core.js`,'text/javascript'),
+      wasmURL:await toBlobURL(`${base}/ffmpeg-core.wasm`,'application/wasm')
+    });
+    ffReady=true;setFF('ok','ready');return true;
+  }catch(e){setFF('err','failed to load — '+e.message);log('LOAD ERROR: '+e);return false;}
+}
+async function ensureInput(){
+  if(inputWritten)return;
+  const {fetchFile}=FFmpegUtil;
+  const ext=(videoFile.name.split('.').pop()||'mp4').toLowerCase();
+  inputName='input.'+ext;
+  setFF('busy','loading your video into the engine…');
+  log(`Writing ${videoFile.name} (${(videoFile.size/1e6).toFixed(1)} MB) into engine…`);
+  await ffmpeg.writeFile(inputName, await fetchFile(videoFile));
+  inputWritten=true;setFF('ok','ready');
+}
+async function cutOne(i,btn){
+  const r=results[i];const out=`${String(i+1).padStart(2,'0')}_${r.clip.replace(/\.[^.]+$/,'')}.mp4`;
+  if(!await ensureFFmpeg()){alert('Cutter could not load. Use the timestamps + an editor instead.');return;}
+  await ensureInput();
+  if(btn){btn.disabled=true;btn.dataset.t=btn.textContent;}
+  const onP=({progress})=>{if(btn)btn.textContent='Cutting '+Math.min(99,Math.round((progress||0)*100))+'%';};
+  ffmpeg.on('progress',onP);
+  try{
+    log(`Cutting ${out}  (-ss ${r.start_sec} -t ${r.duration_sec})`);
+    await ffmpeg.exec(['-ss',String(r.start_sec),'-i',inputName,'-t',String(r.duration_sec),'-c:v','libx264','-preset','veryfast','-crf','23','-c:a','aac',out]);
+    const data=await ffmpeg.readFile(out);
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data.buffer],{type:'video/mp4'}));a.download=out;a.click();
+    await ffmpeg.deleteFile(out);
+    log(`✓ ${out} ready (${(data.length/1e6).toFixed(1)} MB)`);
+    if(btn){btn.textContent='Downloaded ✓';setTimeout(()=>{btn.textContent=btn.dataset.t;btn.disabled=false;},1800);}
+  }catch(e){
+    log('CUT ERROR: '+e+'  (the wasm core may lack this encoder)');
+    if(btn){btn.textContent='Failed';btn.disabled=false;}
+    alert('Cutting failed in-browser: '+e.message+'\nThe timestamps still work in any editor.');
+  }finally{ffmpeg.off&&ffmpeg.off('progress',onP);}
 }
 
-const fmt = s => {
-  const m = Math.floor(s/60), sec = (s%60).toFixed(2).padStart(5,'0');
-  return `${String(m).padStart(2,'0')}:${sec}`;
-};
-
-go.addEventListener('click', async () => {
-  go.disabled = true; results = [];
-  tbody.innerHTML = ''; cmdPre.style.display = 'none';
-  document.getElementById('results').style.display = 'none';
-  actions.style.display = 'none';
-  progress.style.display = 'block';
-
-  try {
-    ptext.textContent = 'Decoding episode audio… (large files take a moment)';
-    barFill.style.width = '3%';
-    const episode = await decodeMono(videoFile, SR);
-    // de-mean the episode once, and measure its typical (centered) power for the energy floor
-    let eMean = 0; for (let i = 0; i < episode.length; i++) eMean += episode[i];
-    eMean /= (episode.length || 1);
-    let ePow = 0; for (let i = 0; i < episode.length; i++) { const v = episode[i] - eMean; episode[i] = v; ePow += v*v; }
-    const meanPow = ePow / (episode.length || 1);
-
-    for (let i = 0; i < clipFiles.length; i++) {
-      const f = clipFiles[i];
-      ptext.textContent = `Matching clip ${i+1}/${clipFiles.length}: ${f.name}`;
-      const full = await decodeMono(f, SR);
-      const fullDur = full.length / SR;
-      const piece = full.length > MAX_MATCH_SEC*SR ? full.subarray(0, MAX_MATCH_SEC*SR) : full;
-      const { idx, conf } = await findOffset(episode, piece, meanPow,
-        p => barFill.style.width = (((i + p) / clipFiles.length) * 100).toFixed(1) + '%');
-      const start = idx / SR;
-      results.push({ clip: f.name, start_sec: +start.toFixed(3),
-                     end_sec: +(start+fullDur).toFixed(3),
-                     duration_sec: +fullDur.toFixed(3), confidence: +conf.toFixed(3) });
+go.addEventListener('click',async()=>{
+  go.disabled=true;results=[];tbody.innerHTML='';inputWritten=false;
+  document.getElementById('results').style.display='none';allbtn.style.display='none';
+  legend.style.display='none';diy.style.display='none';cmdPre.style.display='none';progress.style.display='block';
+  try{
+    ptext.textContent='Decoding episode audio…';barFill.style.width='3%';
+    const episode=await decodeMono(videoFile,SR);
+    let eMean=0;for(let i=0;i<episode.length;i++)eMean+=episode[i];eMean/=(episode.length||1);
+    let ePow=0;for(let i=0;i<episode.length;i++){const v=episode[i]-eMean;episode[i]=v;ePow+=v*v;}
+    const meanPow=ePow/(episode.length||1);
+    for(let i=0;i<clipFiles.length;i++){
+      const f=clipFiles[i];ptext.textContent=`Matching clip ${i+1}/${clipFiles.length}: ${f.name}`;
+      const full=await decodeMono(f,SR);const dur=full.length/SR;
+      const piece=full.length>MAX_MATCH_SEC*SR?full.subarray(0,MAX_MATCH_SEC*SR):full;
+      const {idx,conf}=await findOffset(episode,piece,meanPow,p=>barFill.style.width=(((i+p)/clipFiles.length)*100).toFixed(1)+'%');
+      const start=idx/SR;
+      results.push({clip:f.name,start_sec:+start.toFixed(3),end_sec:+(start+dur).toFixed(3),duration_sec:+dur.toFixed(3),confidence:+conf.toFixed(3)});
     }
-
-    progress.style.display = 'none';
-    document.getElementById('results').style.display = 'table';
-    actions.style.display = 'flex';
-    for (const r of results) {
-      const cls = r.confidence >= MIN_CONF ? 'hi' : 'lo';
-      const label = r.confidence >= MIN_CONF ? (r.confidence*100).toFixed(0)+'%' : '⚠ ' + (r.confidence*100).toFixed(0)+'%';
-      tbody.insertAdjacentHTML('beforeend',
-        `<tr><td>${r.clip}</td><td>${fmt(r.start_sec)}</td><td>${fmt(r.end_sec)}</td>
-         <td>${r.duration_sec.toFixed(1)}s</td><td><span class="conf ${cls}">${label}</span></td></tr>`);
-    }
-  } catch (e) {
-    progress.style.display = 'none';
-    alert('Error: ' + e.message + '\n(Tip: the browser must be able to decode the file — mp4/mp3/wav work best.)');
-  }
-  go.disabled = false;
+    progress.style.display='none';document.getElementById('results').style.display='table';allbtn.style.display='block';
+    legend.style.display='block';diy.style.display='block';
+    results.forEach((r,i)=>{
+      const hi=r.confidence>=MIN_CONF;const cls=hi?'hi':'lo';const label=hi?(r.confidence*100).toFixed(0)+'%':'⚠ '+(r.confidence*100).toFixed(0)+'%';
+      tbody.insertAdjacentHTML('beforeend',`<tr><td>${r.clip}</td><td>${fmt(r.start_sec)}</td><td>${fmt(r.end_sec)}</td><td>${r.duration_sec.toFixed(1)}s</td><td><span class="conf ${cls}">${label}</span></td><td><button class="cut" data-i="${i}">Download clip</button></td></tr>`);
+    });
+    tbody.querySelectorAll('.cut').forEach(b=>b.addEventListener('click',()=>cutOne(+b.dataset.i,b)));
+    ensureFFmpeg();
+  }catch(e){progress.style.display='none';alert('Error: '+e.message);}
+  go.disabled=false;
 });
-
-copyCmd.addEventListener('click', () => {
-  const v = videoFile.name;
-  const cmds = results.map(r => {
-    const out = r.clip.replace(/\.[^.]+$/, '') + '.mp4';
-    return `ffmpeg -ss ${r.start_sec} -i "${v}" -t ${r.duration_sec} -c:v libx264 -crf 20 -c:a aac "${out}"`;
-  }).join('\n');
-  navigator.clipboard.writeText(cmds);
-  cmdPre.textContent = cmds; cmdPre.style.display = 'block';
-  copyCmd.textContent = 'Copied ✓'; setTimeout(() => copyCmd.textContent = 'Copy ffmpeg cut commands', 1500);
+allbtn.addEventListener('click',async()=>{
+  allbtn.disabled=true;const t=allbtn.textContent;
+  for(let i=0;i<results.length;i++){allbtn.textContent=`Cutting ${i+1}/${results.length}…`;await cutOne(i,null);}
+  allbtn.textContent='All done ✓';setTimeout(()=>{allbtn.textContent=t;allbtn.disabled=false;},2000);
 });
-
-dlJson.addEventListener('click', () => {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' }));
-  a.download = 'timestamps.json'; a.click();
+copyCmd.addEventListener('click',()=>{
+  const v=videoFile.name;
+  const lines=results.map((r,i)=>{const out=String(i+1).padStart(2,'0')+'_'+r.clip.replace(/\.[^.]+$/,'')+'.mp4';return `ffmpeg -ss ${r.start_sec} -i "${v}" -t ${r.duration_sec} -c:v libx264 -crf 20 -c:a aac "${out}"`;});
+  const text=`# Run these from the folder that contains "${v}"\n`+lines.join('\n');
+  navigator.clipboard&&navigator.clipboard.writeText(text);
+  cmdPre.textContent=text;cmdPre.style.display='block';
+  copyCmd.textContent='Copied ✓';setTimeout(()=>copyCmd.textContent='Copy ffmpeg commands',1500);
+});
+dlJson.addEventListener('click',()=>{
+  const data=results.map((r,i)=>({clip:r.clip,start_seconds:r.start_sec,end_seconds:r.end_sec,start_timecode:fmt(r.start_sec),end_timecode:fmt(r.end_sec),duration_seconds:r.duration_sec,confidence:r.confidence,low_confidence:r.confidence<MIN_CONF,output:String(i+1).padStart(2,'0')+'_'+r.clip.replace(/\.[^.]+$/,'')+'.mp4'}));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='timestamps.json';a.click();
 });
 </script>
 </body>
